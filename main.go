@@ -7,6 +7,8 @@ import (
   "os"
   "os/signal"
   "syscall"
+
+  "github.com/lordmortis/DiscordDestinyInfo/discord"
 )
 
 var (
@@ -29,7 +31,7 @@ func main() {
     return
   }
 
-  err = discordSetup()
+  err = discord.Setup(config.Discord.Token)
   if (err != nil) {
     fmt.Println("Unable to connect to discord, ", err)
     return
@@ -43,5 +45,5 @@ func main() {
   <-sc
 
   // Cleanly close down the Discord session.
-  discordClose()
+  discord.Close()
 }

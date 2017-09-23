@@ -1,4 +1,4 @@
-package main
+package discord
 
 import (
   "errors"
@@ -19,9 +19,11 @@ type channelInfo struct {
   DM bool
 }
 
-func discordSetup() error {
+type commandFunc func(*discordgo.Session, *discordgo.MessageCreate)
+
+func Setup(token string) error {
   var err error
-  discord, err = discordgo.New("Bot " + config.Discord.Token)
+  discord, err = discordgo.New("Bot " + token)
   if err != nil {
     return errors.New("error creating Discord session, " + err.Error())
   }
@@ -39,7 +41,7 @@ func discordSetup() error {
   return nil
 }
 
-func discordClose() {
+func Close() {
   if (discord != nil) { discord.Close() }
 }
 
@@ -67,25 +69,6 @@ func discordGetCommand(user *discordgo.User, message *discordgo.MessageCreate) (
   return command, commandFound
 }
 
-func discordGetChannelInfo(session *discordgo.Session, id string) channelInfo {
-  info, exists := discordChannels[id]
-  if (exists) { return info }
-
-  discordInfo, err := session.Channel(id)
-  if (err != nil) {
-    fmt.Println("Could not retrieve info for: " + id)
-    return info
-  }
-
-  var isDM = discordInfo.Type == discordgo.ChannelTypeDM
-  var isGroupDM = discordInfo.Type == discordgo.ChannelTypeGroupDM
-
-  var newInfo channelInfo
-  newInfo.DM = isDM || isGroupDM
-  discordChannels[id] = newInfo
-  return newInfo
-}
-
 func discordSendHelp(session *discordgo.Session, user *discordgo.User) {
   channel, err := session.UserChannelCreate(user.ID)
   if err != nil {
@@ -107,7 +90,6 @@ func discordNewMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 
   if channelInfo.DM {
     command = strings.Trim(m.Content, " ")
-    fmt.Printf("Found command: %s", command)
     commandFound = true
   } else {
     command, commandFound = discordGetCommand(s.State.User, m);
