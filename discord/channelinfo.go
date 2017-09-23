@@ -6,8 +6,20 @@ import (
   "github.com/bwmarrin/discordgo"
 )
 
-func discordGetChannelInfo(session *discordgo.Session, id string) channelInfo {
-  info, exists := discordChannels[id]
+type channelInfo struct {
+  DM bool
+}
+
+var (
+  channels map[string]channelInfo
+)
+
+func init() {
+  channels = make(map[string]channelInfo)
+}
+
+func getChannelInfo(session *discordgo.Session, id string) channelInfo {
+  info, exists := channels[id]
   if (exists) { return info }
 
   discordInfo, err := session.Channel(id)
@@ -21,6 +33,6 @@ func discordGetChannelInfo(session *discordgo.Session, id string) channelInfo {
 
   var newInfo channelInfo
   newInfo.DM = isDM || isGroupDM
-  discordChannels[id] = newInfo
+  channels[id] = newInfo
   return newInfo
 }
