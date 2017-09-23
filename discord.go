@@ -86,6 +86,17 @@ func discordGetChannelInfo(session *discordgo.Session, id string) channelInfo {
   return newInfo
 }
 
+func discordSendHelp(session *discordgo.Session, user *discordgo.User) {
+  channel, err := session.UserChannelCreate(user.ID)
+  if err != nil {
+    fmt.Println("Could not create channel!")
+    return
+  }
+
+  session.ChannelMessageSend(channel.ID, "Hi!")
+  session.ChannelMessageSend(channel.ID, "send me 'ping' or 'pong' to have me send you a message!")
+}
+
 func discordNewMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
   if m.Author.ID == s.State.User.ID { return }
 
@@ -109,6 +120,11 @@ func discordNewMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 
   fmt.Println("Saw command: ", command)
 
+  if strings.HasPrefix(command, "help") {
+    discordSendHelp(s, m.Author)
+    return
+  }
+
   // If the message is "ping" reply with "Pong!"
   if strings.HasPrefix(command, "ping") {
     s.ChannelMessageSend(m.ChannelID, "Pong " + m.Author.Username)
@@ -121,5 +137,5 @@ func discordNewMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
     return
   }
 
-  s.ChannelMessageSend(m.ChannelID, "Sorry I didn't understand \"" + command +"\"")
+  s.ChannelMessageSend(m.ChannelID, "Sorry I didn't understand \"" + command +"\" - ask me for \"help\" if you need")
 }
