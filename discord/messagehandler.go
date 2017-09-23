@@ -25,25 +25,8 @@ func handleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 
   if !mymessage { return }
 
-  var command = strings.ToLower(suffix)
-
-  if strings.HasPrefix(command, "help") {
-    help(s, m.Author)
-    return
-  }
-
-  // If the message is "ping" reply with "Pong!"
-  if strings.HasPrefix(command, "ping") {
-    s.ChannelMessageSend(m.ChannelID, "Pong " + m.Author.Username)
-    return
-  }
-
-  // If the message is "pong" reply with "Ping!"
-  if strings.HasPrefix(command, "pong") {
-    s.ChannelMessageSend(m.ChannelID, "Pong " + m.Author.Username)
-    return
-  }
+  if handleCommand(suffix, s, m) { return }
 
   fmt.Println("Didn't recognize: ", suffix)
-  s.ChannelMessageSend(m.ChannelID, "Sorry I didn't understand \"" + command +"\" - ask me for \"help\" if you need")
+  s.ChannelMessageSend(m.ChannelID, "Sorry I didn't understand \"" + m.Content +"\" - ask me for \"help\" if you need")
 }

@@ -1,14 +1,13 @@
 package discord
 
 import (
-  "fmt"
   "strings"
   "sort"
 
   "github.com/bwmarrin/discordgo"
 )
 
-type Command func(*discordgo.Session, *discordgo.Message)
+type Command func(session *discordgo.Session, message *discordgo.Message, parameters string)
 
 type commandData struct {
   name string
@@ -19,10 +18,12 @@ type commandData struct {
 var (
   commands map[string]commandData
   commandList []string
+  maxCommandLength int
 )
 
 func init() {
   commands = make(map[string]commandData)
+  RegisterCommand("Help", "show help", helpCommand)
 }
 
 func RegisterCommand(name string, help string, fn Command) {
@@ -35,20 +36,20 @@ func RegisterCommand(name string, help string, fn Command) {
 
   commandList = append(commandList, lowerName)
   sort.Strings( commandList )
+
+  if len(lowerName) > maxCommandLength { maxCommandLength = len(lowerName) }
 }
 
-func help(session *discordgo.Session, user *discordgo.User) {
-  channel, err := session.UserChannelCreate(user.ID)
-  if err != nil {
-    fmt.Println("Could not create channel for DM!")
-    return
+func handleCommand(message string, s *discordgo.Session, m *discordgo.MessageCreate) bool {
+  var substrings = strings.SplitN(message, " ", 2)
+  data, exists := commands[strings.ToLower(substrings[0])]
+
+  if !exists { return false }
+  if len(substrings) == 1 {
+    data.fn(s, m.Message, "")
+  } else {
+    data.fn(s, m.Message, substrings[1])
   }
 
-  session.ChannelMessageSend(channel.ID, "Hi!")
-  session.ChannelMessageSend(channel.ID, "Here's some help:")
-  for _, key := range ( commandList ) {
-    var command = commands[key]
-    var help = fmt.Sprintf("%s - %s", command.name, command.help)
-    session.ChannelMessageSend(channel.ID, help)
-  }
+  return true
 }
