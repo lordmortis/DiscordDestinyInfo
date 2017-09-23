@@ -4,9 +4,6 @@ import (
   "errors"
   "strings"
 
-  "fmt"
-//  "strconv"
-
   "github.com/bwmarrin/discordgo"
 )
 
@@ -60,15 +57,4 @@ func discordGetCommand(user *discordgo.User, message *discordgo.MessageCreate) (
   }
 
   return command, commandFound
-}
-
-func discordSendHelp(session *discordgo.Session, user *discordgo.User) {
-  channel, err := session.UserChannelCreate(user.ID)
-  if err != nil {
-    fmt.Println("Could not create channel!")
-    return
-  }
-
-  session.ChannelMessageSend(channel.ID, "Hi!")
-  session.ChannelMessageSend(channel.ID, "send me 'ping' or 'pong' to have me send you a message!")
 }

@@ -13,25 +13,22 @@ func handleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 
   var channelInfo = getChannelInfo(s, m.ChannelID)
 
-  var command string
-  var commandFound bool
+  var suffix string
+  var mymessage bool
 
   if channelInfo.DM {
-    command = strings.Trim(m.Content, " ")
-    commandFound = true
+    suffix = strings.Trim(m.Content, " ")
+    mymessage = true
   } else {
-    command, commandFound = discordGetCommand(s.State.User, m);
+    suffix, mymessage = discordGetCommand(s.State.User, m);
   }
 
-  if !commandFound {
-    fmt.Printf("Saw message: '%s'\n", m.Content)
-    return
-  }
+  if !mymessage { return }
 
-  fmt.Println("Saw command: ", command)
+  var command = strings.ToLower(suffix)
 
   if strings.HasPrefix(command, "help") {
-    discordSendHelp(s, m.Author)
+    help(s, m.Author)
     return
   }
 
@@ -47,5 +44,6 @@ func handleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
     return
   }
 
+  fmt.Println("Didn't recognize: ", suffix)
   s.ChannelMessageSend(m.ChannelID, "Sorry I didn't understand \"" + command +"\" - ask me for \"help\" if you need")
 }
