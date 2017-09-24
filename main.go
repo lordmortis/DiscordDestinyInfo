@@ -9,6 +9,7 @@ import (
   "syscall"
 
   "github.com/lordmortis/DiscordDestinyInfo/discord"
+//  "github.com/lordmortis/goBungieNet"
 )
 
 var (
@@ -30,6 +31,10 @@ func main() {
     fmt.Println(err)
     return
   }
+
+  fmt.Printf("Bungie API Key: %s\n", config.BungieNet.ApiKey)
+
+  return
 
   err = discord.Setup(config.Discord.Token)
   if (err != nil) {

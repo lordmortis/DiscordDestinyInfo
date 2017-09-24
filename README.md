@@ -13,6 +13,7 @@ You will need a [properly setup](https://golang.org/doc/install) Go development 
 Once you have your GOPATH setup as above you should:
 
   1. `go get github.com/bwmarrin/discordgo`
+  2. `go get github.com/lordmortis/goBungieNet`
 
 once you have all those, you should create a config file from the `config.sample.json` template.
 Ensure you have your Client ID handy to add your bot to a server

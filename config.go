@@ -12,8 +12,13 @@ type DiscordConfig struct {
   ClientID string
 }
 
+type BungieNetConfig struct {
+  ApiKey  string
+}
+
 type Config struct {
-  Discord      DiscordConfig           `json:"discord"`
+  Discord     DiscordConfig     `json:"discord"`
+  BungieNet   BungieNetConfig   `json:"bungie.net"`
 }
 
 func LoadConfig(filename string) (*Config, error) {

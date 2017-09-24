@@ -1,6 +1,9 @@
 {
     "discord" : {
-        "clientID": "YOUR_CLIENT_ID",
-        "token": "YOUR_TOKEN_HERE"
+        "clientID": "DISCORD_CLIENT_ID",
+        "token": "DISCORD_TOKEN_HERE"
+    },
+    "bungie.net": {
+      "apiKey": "BUNGIE_API_KEY_HERE"
     }
 }
