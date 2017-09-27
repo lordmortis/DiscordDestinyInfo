@@ -1,10 +1,11 @@
 {
-    "discord" : {
-        "clientID": "DISCORD_CLIENT_ID",
-        "token": "DISCORD_TOKEN_HERE"
-    },
-    "bungie.net": {
-      "manifestPath" : "temp",
-      "apiKey": "BUNGIE_API_KEY_HERE"
-    }
+  "db": "DB_FILE_LOCATION",
+  "discord" : {
+      "clientID": "DISCORD_CLIENT_ID",
+      "token": "DISCORD_TOKEN_HERE"
+  },
+  "bungie.net": {
+    "manifestPath" : "temp",
+    "apiKey": "BUNGIE_API_KEY_HERE"
+  }
 }

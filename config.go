@@ -20,6 +20,7 @@ type BungieNetConfig struct {
 type Config struct {
   Discord     DiscordConfig     `json:"discord"`
   BungieNet   BungieNetConfig   `json:"bungie.net"`
+  DBPath      string            `json:"db"`
 }
 
 func LoadConfig(filename string) (*Config, error) {

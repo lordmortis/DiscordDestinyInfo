@@ -17,6 +17,7 @@ var (
 func init() {
   discord.RegisterCommand("RegisterSearch", "Search for your PSN/Xbox account (if only one result matches, will register) - `RegisterSearch <GamerTag/Nickname> <Xbox/Psn/BattleNet>`", handleRegisterSearch)
   discord.RegisterCommand("Register", "Register your bungo account - `Register <Bungie.Net Membership ID> <Xbox/Psn/BattleNet>`", handleRegister)
+  discord.RegisterCommand("ShowRegistration", "Show your registration if it exists", handleRegisterShow)
 }
 
 func handleRegister(session *discordgo.Session, message *discordgo.Message, parameters string) {
@@ -54,6 +55,13 @@ func handleRegister(session *discordgo.Session, message *discordgo.Message, para
   _, err1 := goBungieNet.GetProfile(id, accountType, components)
   if err1 != nil {
     msg := fmt.Sprintf("Error registering: %s", err1.Error())
+    session.ChannelMessageSend(channel.ID, msg)
+    return
+  }
+
+  err = createRego(message.Author.ID, id, accountType)
+  if err != nil {
+    msg := fmt.Sprintf("Error registering: %s", err.Error())
     session.ChannelMessageSend(channel.ID, msg)
     return
   }
@@ -99,7 +107,8 @@ func handleRegisterSearch(session *discordgo.Session, message *discordgo.Message
   }
 
   if len(*users) == 1 {
-    err := recordRegistration()
+    user := (*users)[0]
+    err := createRego(message.Author.ID, user.MembershipID, user.MembershipType)
     if err != nil {
       session.ChannelMessageSend(channel.ID, "Could not record registration :(")
       return
@@ -114,6 +123,27 @@ func handleRegisterSearch(session *discordgo.Session, message *discordgo.Message
   }
 }
 
-func recordRegistration() error {
-  return nil
+func handleRegisterShow(session *discordgo.Session, message *discordgo.Message, parameters string) {
+  channel, err := session.UserChannelCreate(message.Author.ID)
+  if err != nil {
+    fmt.Println("Could not create channel for DM!")
+    return
+  }
+
+  var rego *Registration
+  rego, err = loadRego(message.Author.ID)
+  if err != nil {
+    msg := fmt.Sprintf("Could not query database! %s", err)
+    session.ChannelMessageSend(channel.ID, msg)
+    return
+  }
+
+  if rego == nil {
+    msg := fmt.Sprintf("No Registration Found")
+    session.ChannelMessageSend(channel.ID, msg)
+    return
+  }
+
+  msg := fmt.Sprintf("Your Bungie.Net ID is %d on %s", rego.bungieID, rego.network)
+  session.ChannelMessageSend(channel.ID, msg)
 }

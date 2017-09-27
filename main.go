@@ -26,8 +26,9 @@ func main() {
 
   config, err = LoadConfig(*configFile)
 
+  err = setDbPath(config.DBPath)
   if (err != nil) {
-    fmt.Println("Unable to parse/load config!")
+    fmt.Println("Unable to setup Database")
     fmt.Println(err)
     return
   }

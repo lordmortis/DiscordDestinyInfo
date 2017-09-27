@@ -1,4 +1,5 @@
 *.json
 *.exe
 !*.sample.json
-temp/
+data/
+DiscordDestinyInfo
