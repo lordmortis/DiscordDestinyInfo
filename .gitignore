@@ -1,3 +1,4 @@
 *.json
 *.exe
 !*.sample.json
+temp/

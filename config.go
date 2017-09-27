@@ -14,6 +14,7 @@ type DiscordConfig struct {
 
 type BungieNetConfig struct {
   ApiKey  string
+  ManifestPath string
 }
 
 type Config struct {
