@@ -8,10 +8,9 @@ import (
 
 func helpCommand(session *discordgo.Session, message *discordgo.Message, parameters string) {
   channel, err := session.UserChannelCreate(message.Author.ID)
-  if err != nil {
-    fmt.Println("Could not create channel for DM!")
-    return
-  }
+  if err != nil { LogPMCreateError(message.Author); return; }
+
+  LogChatCommand(message.Author, "Help")
 
   session.ChannelMessageSend(channel.ID, "Hi!")
   session.ChannelMessageSend(channel.ID, "Here's some help:")
@@ -19,7 +18,5 @@ func helpCommand(session *discordgo.Session, message *discordgo.Message, paramet
     var command = commands[key]
     var help = fmt.Sprintf("%s - %s", command.name, command.help)
     session.ChannelMessageSend(channel.ID, help)
-
-    fmt.Println(parameters)
   }
 }

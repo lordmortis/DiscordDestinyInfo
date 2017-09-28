@@ -65,9 +65,11 @@ func loadRego(discordID string) (*Registration, error){
   rows, err := db.Query(sql, discordID)
   if err != nil { return nil, err }
   if !rows.Next() { return nil, nil }
+  defer rows.Close()
 
   rego := Registration{ newRecord: false, }
   err = rows.Scan(&rego.bungieID, &rego.network)
+
 
   return &rego, err
 }

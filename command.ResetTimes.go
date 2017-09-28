@@ -19,8 +19,8 @@ var (
 func init() {
   dayDuration = 24 * time.Hour
 
-  discord.RegisterCommand("NextDaily?", "how long until next daily reset?", handleDailyReset)
-  discord.RegisterCommand("NextWeekly?", "how long until next weekly reset?", handleWeeklyReset)
+  discord.RegisterCommand("NextDaily", "how long until next daily reset?", handleDailyReset)
+  discord.RegisterCommand("NextWeekly", "how long until next weekly reset?", handleWeeklyReset)
 }
 
 func friendlyDuration(duration time.Duration) string {
@@ -63,6 +63,7 @@ func friendlyDuration(duration time.Duration) string {
 }
 
 func handleDailyReset(session *discordgo.Session, message *discordgo.Message, parameters string) {
+  discord.LogChatCommand(message.Author, "NextDaily")
   // Resets are at 0900 UTC - when's the next 0900?
   now := time.Now().UTC()
   nextReset := time.Date(now.Year(), now.Month(), now.Day(), 9, 0, 0, 0, time.UTC)
@@ -74,6 +75,7 @@ func handleDailyReset(session *discordgo.Session, message *discordgo.Message, pa
 }
 
 func handleWeeklyReset(session *discordgo.Session, message *discordgo.Message, parameters string) {
+  discord.LogChatCommand(message.Author, "NextWeekly")
   // Resets are at 0900 UTC on Tuesdays - when's the next 0900 tuesday?
   now := time.Now().UTC()
   daysToTuesday := int(time.Tuesday - now.Weekday())
