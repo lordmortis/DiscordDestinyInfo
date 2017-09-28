@@ -11,9 +11,6 @@ import (
   "github.com/bwmarrin/discordgo"
 )
 
-var (
-)
-
 func init() {
   discord.RegisterCommand("RegisterSearch", "Search for your PSN/Xbox account (if only one result matches, will register) - `RegisterSearch <GamerTag/Nickname> <Xbox/Psn/BattleNet>`", handleRegisterSearch)
   discord.RegisterCommand("Register", "Register your bungo account - `Register <Bungie.Net Membership ID> <Xbox/Psn/BattleNet>`", handleRegister)

@@ -48,26 +48,6 @@ func main() {
     return
   }
 
-  //components := []goBungieNet.DestinyComponentType{goBungieNet.ComponentCharacters,goBungieNet.ComponentCharacterActivities}
-  //response, err1 := goBungieNet.GetProfile(id, goBungieNet.NetworkPsn, components)
-  /*profiles, err1 := goBungieNet.FindDestinyUser("maeglinhiei", goBungieNet.NetworkPsn)*/
-  //if (err1 != nil) {
-//    fmt.Println(err1.Error())
-//    return
-  //}
-
-  /*for _, profile := range( *profiles ) {
-    fmt.Printf("ID: %d\n", profile.MembershipID)
-  }*/
-
-
-//  currentCharID := response.CharacterActivities.MostRecentCharacter()
-//  fmt.Printf("Character ID: %d\n", id)
-//  fmt.Printf("\tPrivacy:%d\n", response.CharacterActivities.Privacy)
-//  fmt.Printf("\tStarted: %s\n", response.CharacterActivities.Data[currentCharID].DateActivityStarted)
-//  fmt.Printf("\tActivityHash: %d\n", response.CharacterActivities.Data[currentCharID].CurrentActivityHash)
-//  fmt.Printf("\tActivity: %d\n", response.CharacterActivities.Data[currentCharID].CurrentActivityModeType)
-
   err = discord.Setup(config.Discord.Token)
   if (err != nil) {
     fmt.Println("Unable to connect to discord, ", err)
