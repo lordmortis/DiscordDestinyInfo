@@ -54,6 +54,7 @@ func handleWhosOn(session *discordgo.Session, message *discordgo.Message, parame
 			continue
 		}
 
+		// if this is null, in orbit?
 		var currentActivityModeData *goBungieNet.DestinyActivityModeDefinition
 		currentActivityModeData, err = currentActivity.ActivityModeDefinition("en")
 		if err != nil {
@@ -88,9 +89,13 @@ func handleWhosOn(session *discordgo.Session, message *discordgo.Message, parame
 
 		if currentActivityModeData.ModeType == goBungieNet.DestinyActivityModeSocial {
 			msg += fmt.Sprintf(" and they're at the %s", activityName)
+		} else if currentActivityModeData.ModeType == goBungieNet.DestinyActivityModePatrol {
+			msg += fmt.Sprintf(" doing %s %s", activityName, activityModeName)
+		} else if currentActivityModeData.ModeType == goBungieNet.DestinyActivityModeStory {
+			msg += fmt.Sprintf(" doing story mission: %s", activityModeName)
 		} else {
 			msg += fmt.Sprintf(
-				"doing %s %s %s",
+				" doing %s %s %s",
 				currentActivityModeData.ModeType,
 				activityName,
 				activityModeName,
