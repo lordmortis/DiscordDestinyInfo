@@ -2,11 +2,11 @@ package main
 
 import (
   "database/sql"
-
+  
   _ "github.com/mattn/go-sqlite3"
   "github.com/lordmortis/goBungieNet"
 
-  //"github.com/davecgh/go-spew/spew"
+//  "github.com/davecgh/go-spew/spew"
 )
 
 var (
@@ -47,16 +47,17 @@ func migrateRegoTable() error {
 func (rego *Registration)Save() error {
   sql := ""
   if rego.newRecord {
+    sql = `INSERT INTO registrations
+      (discord_id, bungie_id, network_type)
+      VALUES ($3, $1, $2)`
+  } else {
     sql = `UPDATE registrations
       SET bungie_id = $1, network_type = $2
       WHERE discord_id = $3`
-  } else {
-    sql = `INSERT INTO registrations
-      (bungie_id, network_type, discord_id)
-      VALUES ($1, $2, $3)`
   }
 
   _, err := db.Exec(sql, rego.bungieID, rego.network, rego.discordID)
+
   return err
 }
 
@@ -67,21 +68,28 @@ func loadRego(discordID string) (*Registration, error){
   if !rows.Next() { return nil, nil }
   defer rows.Close()
 
-  rego := Registration{ newRecord: false, }
+  rego := Registration{ newRecord: false, discordID: discordID, }
   err = rows.Scan(&rego.bungieID, &rego.network)
-
-
   return &rego, err
 }
 
 func createRego(discordID string, bungieID int64, network goBungieNet.BungieMembershipType) error {
-  rego := Registration{
-    discordID: discordID,
-    bungieID: bungieID,
-    network: network,
+  rego, err := loadRego(discordID)
+  if err != nil { return err }
+
+  if rego == nil {
+    rego = &Registration{
+      newRecord: true,
+      discordID: discordID,
+      bungieID: bungieID,
+      network: network,
+    }
+  } else {
+    rego.bungieID = bungieID
+    rego.network = network
   }
 
-  err := rego.Save()
+  err = rego.Save()
   if err == nil { rego.newRecord = false }
   return err
 }
