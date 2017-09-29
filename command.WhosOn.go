@@ -1,16 +1,12 @@
 package main
 
 import (
-//  "fmt"
-//  "strings"
-//  "strconv"
+	"fmt"
 
   "github.com/lordmortis/DiscordDestinyInfo/discord"
   "github.com/lordmortis/goBungieNet"
 
   "github.com/bwmarrin/discordgo"
-
-  "github.com/davecgh/go-spew/spew"
 )
 
 func init() {
@@ -32,16 +28,76 @@ func handleWhosOn(session *discordgo.Session, message *discordgo.Message, parame
 	
 	msg := "I think the following players are online:\n"
 
-	components := []goBungieNet.DestinyComponentType{goBungieNet.ComponentProfiles, goBungieNet.ComponentCharacterActivities}
+	components := []goBungieNet.DestinyComponentType{
+		goBungieNet.ComponentCharacters,
+		goBungieNet.ComponentCharacterActivities,
+	}
 
 	for _, rego := range( *regos ) {
 		var response *goBungieNet.GetProfileResponse
 		response, err = rego.GetProfile(components)
 		if err != nil {
-			discord.LogPMError(session, message.Author, channel, "Couldn't get profile info for %i because: %s", rego.bungieID, err.Error())
+			discord.LogPMError(session, message.Author, channel, "Couldn't get profile info for %d because: %s", rego.bungieID, err.Error())
 			continue
 		}
-		spew.Dump(response)
+
+		charID := response.CharacterActivities.MostRecentCharacterID()
+		currentCharacter := response.Characters.Data[charID]
+		currentActivity := response.CharacterActivities.Data[charID]
+		
+		// if the hash is 0 they aren't playing at the moment.
+		if currentActivity.CurrentActivityHash == 0 { continue }
+		var currentActivityData *goBungieNet.DestinyActivity
+		currentActivityData, err = currentActivity.ActivityDefinition("en")
+		if err != nil {
+			discord.LogPMError(session, message.Author, channel, "Couldn't get activity details for %d because: %s", rego.bungieID, err.Error())
+			continue
+		}
+
+		var currentActivityModeData *goBungieNet.DestinyActivityModeDefinition
+		currentActivityModeData, err = currentActivity.ActivityModeDefinition("en")
+		if err != nil {
+			discord.LogPMError(session, message.Author, channel, "Couldn't get activity mode details for %d because: %s", rego.bungieID, err.Error())
+			continue
+		}
+
+		var class *goBungieNet.DestinyClassDefinition
+		class, err = currentCharacter.Class("en")
+		if err != nil {
+			discord.LogPMError(session, message.Author, channel, "Couldn't get class details for %d because: %s", rego.bungieID, err.Error())
+			continue
+		}
+
+		levelString := ""
+		if currentCharacter.LevelProgression.Level == currentCharacter.LevelProgression.LevelCap {
+			levelString = fmt.Sprintf("%d Light", currentCharacter.Light)
+		} else {
+			levelString = fmt.Sprintf("Level %d", currentCharacter.LevelProgression.Level)
+		}
+
+		msgString := "<@%s> playing their %s %s on %s"
+		msg += fmt.Sprintf(msgString,
+			rego.discordID,
+			levelString,
+			class.DisplayProperties.Name,
+			currentCharacter.MembershipType,
+		)
+
+		activityName := currentActivityData.DisplayProperties.Name
+		activityModeName := currentActivityModeData.DisplayProperties.Name
+
+		if currentActivityModeData.ModeType == goBungieNet.DestinyActivityModeSocial {
+			msg += fmt.Sprintf(" and they're at the %s", activityName)
+		} else {
+			msg += fmt.Sprintf(
+				"doing %s %s %s",
+				currentActivityModeData.ModeType,
+				activityName,
+				activityModeName,
+			)
+		}
+
+		msg += "\n"
 	}
 
 	session.ChannelMessageSend(message.ChannelID, msg)
