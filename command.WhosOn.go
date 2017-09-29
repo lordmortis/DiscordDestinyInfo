@@ -1,14 +1,16 @@
 package main
 
 import (
-  "fmt"
+//  "fmt"
 //  "strings"
 //  "strconv"
 
   "github.com/lordmortis/DiscordDestinyInfo/discord"
-//  "github.com/lordmortis/goBungieNet"
+  "github.com/lordmortis/goBungieNet"
 
   "github.com/bwmarrin/discordgo"
+
+  "github.com/davecgh/go-spew/spew"
 )
 
 func init() {
@@ -28,8 +30,18 @@ func handleWhosOn(session *discordgo.Session, message *discordgo.Message, parame
 		return
 	}
 	
+	msg := "I think the following players are online:\n"
+
+	components := []goBungieNet.DestinyComponentType{goBungieNet.ComponentProfiles, goBungieNet.ComponentCharacterActivities}
+
 	for _, rego := range( *regos ) {
-		
+		var response *goBungieNet.GetProfileResponse
+		response, err = rego.GetProfile(components)
+		if err != nil {
+			discord.LogPMError(session, message.Author, channel, "Couldn't get profile info for %i because: %s", rego.bungieID, err.Error())
+			continue
+		}
+		spew.Dump(response)
 	}
 
 	session.ChannelMessageSend(message.ChannelID, msg)
