@@ -12,11 +12,11 @@ func helpCommand(session *discordgo.Session, message *discordgo.Message, paramet
 
   LogChatCommand(message.Author, "Help")
 
-  session.ChannelMessageSend(channel.ID, "Hi!")
-  session.ChannelMessageSend(channel.ID, "Here's some help:")
+  msg := "Hi!\nHere's some help:\n"
   for _, key := range ( commandList ) {
     var command = commands[key]
-    var help = fmt.Sprintf("%s - %s", command.name, command.help)
-    session.ChannelMessageSend(channel.ID, help)
+    msg += fmt.Sprintf("%s - %s\n", command.name, command.help)
   }
+
+  session.ChannelMessageSend(channel.ID, msg)
 }
