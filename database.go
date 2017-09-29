@@ -73,6 +73,22 @@ func loadRego(discordID string) (*Registration, error){
   return &rego, err
 }
 
+func loadRegos() (*[]Registration, error) {
+  sql := `SELECT discord_id, bungie_id, network_type FROM registrations`
+  rows, err := db.Query(sql)
+  if err != nil { return nil, err }
+  defer rows.Close()
+  var regos []Registration
+  for rows.Next() {
+    rego := Registration{newRecord: false}
+    err = rows.Scan(&rego.discordID, &rego.bungieID, &rego.network)
+    if err != nil { return &regos, err }
+    regos = append(regos, rego)
+  }
+
+  return &regos, nil
+}
+
 func createRego(discordID string, bungieID int64, network goBungieNet.BungieMembershipType) error {
   rego, err := loadRego(discordID)
   if err != nil { return err }
