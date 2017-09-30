@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 
-  "github.com/lordmortis/DiscordDestinyInfo/discord"
-  "github.com/lordmortis/goBungieNet"
+	"github.com/lordmortis/DiscordDestinyInfo/discord"
+	"github.com/lordmortis/goBungieNet"
 
-  "github.com/bwmarrin/discordgo"
+	"github.com/bwmarrin/discordgo"
 )
 
 func init() {
@@ -15,17 +15,20 @@ func init() {
 
 func handleWhosOn(session *discordgo.Session, message *discordgo.Message, parameters string) {
 	channel, err := session.UserChannelCreate(message.Author.ID)
-	if err != nil { discord.LogPMCreateError(message.Author); return; }
+	if err != nil {
+		discord.LogPMCreateError(message.Author)
+		return
+	}
 
 	discord.LogChatCommand(message.Author, "WhosOn")
 
 	var regos *[]Registration
 	regos, err = loadRegos()
-	if err != nil {	
+	if err != nil {
 		discord.LogPMError(session, message.Author, channel, "Couldn't get registrations: %s", err.Error())
 		return
 	}
-	
+
 	msg := "I think the following players are online:\n"
 
 	components := []goBungieNet.DestinyComponentType{
@@ -33,7 +36,7 @@ func handleWhosOn(session *discordgo.Session, message *discordgo.Message, parame
 		goBungieNet.ComponentCharacterActivities,
 	}
 
-	for _, rego := range( *regos ) {
+	for _, rego := range *regos {
 		var response *goBungieNet.GetProfileResponse
 		response, err = rego.GetProfile(components)
 		if err != nil {
@@ -44,22 +47,46 @@ func handleWhosOn(session *discordgo.Session, message *discordgo.Message, parame
 		charID := response.CharacterActivities.MostRecentCharacterID()
 		currentCharacter := response.Characters.Data[charID]
 		currentActivity := response.CharacterActivities.Data[charID]
-		
+
 		// if the hash is 0 they aren't playing at the moment.
-		if currentActivity.CurrentActivityHash == 0 { continue }
-		var currentActivityData *goBungieNet.DestinyActivity
-		currentActivityData, err = currentActivity.ActivityDefinition("en")
-		if err != nil {
-			discord.LogPMError(session, message.Author, channel, "Couldn't get activity details for %d because: %s", rego.bungieID, err.Error())
+		if currentActivity.CurrentActivityHash == 0 {
 			continue
 		}
 
-		// if this is null, in orbit?
-		var currentActivityModeData *goBungieNet.DestinyActivityModeDefinition
-		currentActivityModeData, err = currentActivity.ActivityModeDefinition("en")
+		var currentActivityData *goBungieNet.DestinyActivity
+		currentActivityData, err = currentActivity.ActivityDefinition("en")
 		if err != nil {
-			discord.LogPMError(session, message.Author, channel, "Couldn't get activity mode details for %d because: %s", rego.bungieID, err.Error())
+			discord.LogPMError(
+				session,
+				message.Author,
+				channel,
+				"Couldn't get activity details for %d because: %s",
+				currentActivity.CurrentActivityModeHash,
+				rego.bungieID,
+				err.Error(),
+			)
 			continue
+		}
+		activityName := currentActivityData.DisplayProperties.Name
+
+		activityModeName := ""
+		var currentActivityModeData *goBungieNet.DestinyActivityModeDefinition
+
+		if currentActivity.CurrentActivityModeType != goBungieNet.DestinyActivityModeNone {
+			currentActivityModeData, err = currentActivity.ActivityModeDefinition("en")
+			if err != nil {
+				discord.LogPMError(
+					session,
+					message.Author,
+					channel,
+					"Couldn't get activity mode details %d for %d because: %s",
+					currentActivity.CurrentActivityModeHash,
+					rego.bungieID,
+					err.Error(),
+				)
+				continue
+			}
+			activityModeName = currentActivityModeData.DisplayProperties.Name
 		}
 
 		var class *goBungieNet.DestinyClassDefinition
@@ -84,16 +111,16 @@ func handleWhosOn(session *discordgo.Session, message *discordgo.Message, parame
 			currentCharacter.MembershipType,
 		)
 
-		activityName := currentActivityData.DisplayProperties.Name
-		activityModeName := currentActivityModeData.DisplayProperties.Name
-
-		if currentActivityModeData.ModeType == goBungieNet.DestinyActivityModeSocial {
-			msg += fmt.Sprintf(" and they're at the %s", activityName)
-		} else if currentActivityModeData.ModeType == goBungieNet.DestinyActivityModePatrol {
+		switch currentActivity.CurrentActivityModeType {
+		case goBungieNet.DestinyActivityModeNone:
+			msg += fmt.Sprintf(" and they're In Orbit")
+		case goBungieNet.DestinyActivityModePatrol:
 			msg += fmt.Sprintf(" doing %s %s", activityName, activityModeName)
-		} else if currentActivityModeData.ModeType == goBungieNet.DestinyActivityModeStory {
+		case goBungieNet.DestinyActivityModeStory:
 			msg += fmt.Sprintf(" doing story mission: %s", activityModeName)
-		} else {
+		case goBungieNet.DestinyActivityModeSocial:
+			msg += fmt.Sprintf(" and they're at the %s", activityName)
+		default:
 			msg += fmt.Sprintf(
 				" doing %s %s %s",
 				currentActivityModeData.ModeType,

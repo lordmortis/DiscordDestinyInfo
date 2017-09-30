@@ -4,7 +4,6 @@ import (
   "database/sql"
   
   _ "github.com/mattn/go-sqlite3"
-  "github.com/lordmortis/goBungieNet"
 
 //  "github.com/davecgh/go-spew/spew"
 )
