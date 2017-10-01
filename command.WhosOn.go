@@ -120,6 +120,12 @@ func handleWhosOn(session *discordgo.Session, message *discordgo.Message, parame
 			msg += fmt.Sprintf(" doing story mission: %s", activityModeName)
 		case goBungieNet.DestinyActivityModeSocial:
 			msg += fmt.Sprintf(" and they're at the %s", activityName)
+		case goBungieNet.DestinyActivityModeClash:
+		case goBungieNet.DestinyActivityModeControl:
+		case goBungieNet.DestinyActivityModeSupremacy:
+		case goBungieNet.DestinyActivityModeCountdown:
+		case goBungieNet.DestinyActivityModeSurvival:
+			msg += fmt.Sprintf(" is playing %s on the %s map", currentActivityModeData.ModeType, activityName)
 		default:
 			msg += fmt.Sprintf(
 				" doing %s %s %s",
