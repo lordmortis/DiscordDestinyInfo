@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 
@@ -14,8 +15,11 @@ import (
 
 func init() {
 	discord.RegisterCommand("Events", "Tell me info about today/this week's events", handleEvents)
+	discord.RegisterCommand("WhatsOn", "Tell me info about today/this week's events", handleEvents)
+	discord.RegisterCommand("Xur", "Tell me info about Xur", handleXur)
 	discord.RegisterCommand("Nightfall", "Tell me info about this week's nightfall", handleNightfall)
 	discord.RegisterCommand("Flashpoint", "Tell me info about this week's flashpoint", handleFlashpoint)
+	discord.RegisterCommand("Meditations", "Tell me info about this week's meditations", handleMeditations)
 }
 
 func fetchEventsAndDefinitions(languageCode string) (*map[uint32]goBungieNet.DestinyMilestone, *map[uint32]goBungieNet.DestinyMilestoneDefinition, error) {
@@ -53,20 +57,44 @@ func handleEvents(session *discordgo.Session, message *discordgo.Message, parame
 		return
 	}
 
-	msg := "Found Events:\n"
+	msg := ""
 
 	_ = milestones
 
 	for key, defn := range *defns {
 		err = nil
 		var newMsg *string
+		milestone := (*milestones)[key]
 		switch defn.FriendlyName {
+		case "ClanProgress", "ClanObjectives":
+			// We ignore clan progress because it doesn't tell us much.
+			fallthrough
+		case "Raid":
+			// We ignore raid because it doesn't tell us much.
+			fallthrough
+		case "FactionRallyPledge", "FactionRallyWinAnnouncement":
+			// We are ignoring this (for now) because it's the generic faction rally event stuff
+			fallthrough
+		case "CallToArms", "Trials":
+			// We're ignoring these because they are there all the time and provide no info
+			fallthrough
+		case "FactionRally":
+			// I can't identify what the current faction rally is yet :/
+			newMsg = nil
+		case "Meditations":
+			newMsg, err = meditationsMessage(milestone, true)
 		case "Nightfall":
-			newMsg, err = nightfallMessage((*milestones)[key])
+			newMsg, err = nightfallMessage(milestone)
 		case "Hotspot":
-			newMsg, err = hotspotMessage((*milestones)[key], defn)
+			newMsg, err = hotspotMessage(milestone, defn)
+		case "":
+			// which one of these is it?
+			switch defn.DisplayProperties.Name {
+			case "Xûr":
+				newMsg = xurMessage(milestone.EndDate)
+			}
 		default:
-			err = dumpMilestoneData((*milestones)[key], defn)
+			err = dumpMilestoneData(milestone, defn)
 		}
 
 		if err != nil {
@@ -171,6 +199,85 @@ func handleFlashpoint(session *discordgo.Session, message *discordgo.Message, pa
 	session.ChannelMessageSend(message.ChannelID, msg)
 }
 
+func handleXur(session *discordgo.Session, message *discordgo.Message, parameters string) {
+	channel, err := session.UserChannelCreate(message.Author.ID)
+	if err != nil {
+		discord.LogPMCreateError(message.Author)
+		return
+	}
+
+	discord.LogChatCommand(message.Author, "Xur")
+
+	var milestones *map[uint32]goBungieNet.DestinyMilestone
+	var defns *map[uint32]goBungieNet.DestinyMilestoneDefinition
+	milestones, defns, err = fetchEventsAndDefinitions("en")
+	if err != nil {
+		discord.LogPMError(session, message.Author, channel, "Couldn't get milestone data: %s", err.Error())
+		return
+	}
+
+	var milestone goBungieNet.DestinyMilestone
+	found := false
+	for key, defn := range *defns {
+		if defn.FriendlyName == "" && defn.DisplayProperties.Name == "Xûr" {
+			milestone = ((*milestones)[key])
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		session.ChannelMessageSend(message.ChannelID, "Xur's not around?")
+	}
+
+	eventMsg := xurMessage(milestone.EndDate)
+	session.ChannelMessageSend(message.ChannelID, *eventMsg)
+}
+
+func handleMeditations(session *discordgo.Session, message *discordgo.Message, parameters string) {
+	channel, err := session.UserChannelCreate(message.Author.ID)
+	if err != nil {
+		discord.LogPMCreateError(message.Author)
+		return
+	}
+
+	discord.LogChatCommand(message.Author, "Meditations")
+
+	var milestones *map[uint32]goBungieNet.DestinyMilestone
+	var defns *map[uint32]goBungieNet.DestinyMilestoneDefinition
+	milestones, defns, err = fetchEventsAndDefinitions("en")
+	if err != nil {
+		discord.LogPMError(session, message.Author, channel, "Couldn't get milestone data: %s", err.Error())
+		return
+	}
+
+	var milestone goBungieNet.DestinyMilestone
+	found := false
+	for key, defn := range *defns {
+		if defn.FriendlyName == "Meditations" {
+			milestone = ((*milestones)[key])
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		session.ChannelMessageSend(message.ChannelID, "No Meditations found")
+	}
+
+	var eventMsg *string
+	eventMsg, err = meditationsMessage(milestone, false)
+	if err != nil {
+		discord.LogPMError(session, message.Author, channel, err.Error())
+		return
+	}
+
+	msg := "This week's meditations are:\n"
+	msg += *eventMsg
+
+	session.ChannelMessageSend(message.ChannelID, msg)
+}
+
 func nightfallMessage(milestone goBungieNet.DestinyMilestone) (*string, error) {
 	nfQuestActivity := milestone.AvailableQuests[0].Activity
 
@@ -199,7 +306,51 @@ func nightfallMessage(milestone goBungieNet.DestinyMilestone) (*string, error) {
 		}
 	}
 
+	msg = strings.TrimRight(msg, "\n")
+
 	return &msg, nil
+}
+
+func meditationsMessage(milestone goBungieNet.DestinyMilestone, preamble bool) (*string, error) {
+	activityHashes := make([]uint32, len(milestone.AvailableQuests))
+	for index, quest := range milestone.AvailableQuests {
+		activityHashes[index] = quest.Activity.ActivityHash
+	}
+
+	definitions, err := goBungieNet.ActivityDefinitions("en", activityHashes)
+	if err != nil {
+		return nil, fmt.Errorf("Couldn't get activity definitions: %s", err.Error())
+	}
+
+	if len(*definitions) == 0 {
+		msg := "No meditations found"
+		return &msg, nil
+	}
+
+	msg := ""
+
+	if preamble {
+		msg += "Meditations:\n"
+	}
+
+	for _, definition := range *definitions {
+		msg += fmt.Sprintf(
+			"%s - %s\n",
+			definition.DisplayProperties.Name,
+			definition.DisplayProperties.Description,
+		)
+	}
+
+	msg = strings.TrimRight(msg, "\n")
+
+	return &msg, nil
+}
+
+func xurMessage(xurVanish time.Time) *string {
+	amsg := "Xûr will be around for another "
+	now := time.Now().UTC()
+	amsg += friendlyDuration(xurVanish.Sub(now))
+	return &amsg
 }
 
 func hotspotMessage(milestone goBungieNet.DestinyMilestone, definition goBungieNet.DestinyMilestoneDefinition) (*string, error) {
@@ -209,7 +360,7 @@ func hotspotMessage(milestone goBungieNet.DestinyMilestone, definition goBungieN
 }
 
 func dumpMilestoneData(milestone goBungieNet.DestinyMilestone, definition goBungieNet.DestinyMilestoneDefinition) error {
-	fmt.Printf("Dump of %s", definition.FriendlyName)
+	fmt.Printf("Dump of %s\n", definition.FriendlyName)
 	fmt.Print("Milestone:\n")
 	spew.Dump(milestone)
 	fmt.Print("\nDefinition:\n")
