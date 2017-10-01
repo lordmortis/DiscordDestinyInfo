@@ -21,6 +21,7 @@ func handleWhosOn(session *discordgo.Session, message *discordgo.Message, parame
 	}
 
 	discord.LogChatCommand(message.Author, "WhosOn")
+	session.ChannelMessageSend(message.ChannelID, "Checking Who is online...")
 
 	var regos *[]Registration
 	regos, err = loadRegos()
@@ -35,6 +36,8 @@ func handleWhosOn(session *discordgo.Session, message *discordgo.Message, parame
 		goBungieNet.ComponentCharacters,
 		goBungieNet.ComponentCharacterActivities,
 	}
+
+	onlineCount := 0
 
 	for _, rego := range *regos {
 		var response *goBungieNet.GetProfileResponse
@@ -136,6 +139,11 @@ func handleWhosOn(session *discordgo.Session, message *discordgo.Message, parame
 		}
 
 		msg += "\n"
+		onlineCount++
+	}
+
+	if onlineCount == 0 {
+		msg = "No one is online!"
 	}
 
 	session.ChannelMessageSend(message.ChannelID, msg)
