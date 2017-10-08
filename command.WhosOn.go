@@ -123,6 +123,10 @@ func handleWhosOn(session *discordgo.Session, message *discordgo.Message, parame
 			msg += fmt.Sprintf(" doing story mission: %s", activityModeName)
 		case goBungieNet.DestinyActivityModeSocial:
 			msg += fmt.Sprintf(" and they're at the %s", activityName)
+		case goBungieNet.DestinyActivityModeRaid:
+			msg += fmt.Sprintf(" doing the %s Raid", activityName)
+		case goBungieNet.DestinyActivityModeStrike:
+			msg += fmt.Sprintf(" doing the %s Strike", activityName)
 		case goBungieNet.DestinyActivityModeClash:
 			fallthrough
 		case goBungieNet.DestinyActivityModeControl:
@@ -144,11 +148,12 @@ func handleWhosOn(session *discordgo.Session, message *discordgo.Message, parame
 
 		msg += "\n"
 		onlineCount++
+		session.ChannelMessageSend(message.ChannelID, msg)
+		msg = ""
 	}
 
 	if onlineCount == 0 {
-		msg = "No one is online!"
+		session.ChannelMessageSend(message.ChannelID, "No one is online!")
 	}
 
-	session.ChannelMessageSend(message.ChannelID, msg)
 }
