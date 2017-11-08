@@ -20,6 +20,7 @@ func init() {
 	discord.RegisterCommand("Nightfall", "Tell me info about this week's nightfall", handleNightfall)
 	discord.RegisterCommand("Flashpoint", "Tell me info about this week's flashpoint", handleFlashpoint)
 	discord.RegisterCommand("Meditations", "Tell me info about this week's meditations", handleMeditations)
+	discord.RegisterCommand("FactionRally", "Tell me info about the faction rally", handleFactionRally)
 }
 
 func fetchEventsAndDefinitions(languageCode string) (*map[uint32]goBungieNet.DestinyMilestone, *map[uint32]goBungieNet.DestinyMilestoneDefinition, error) {
@@ -66,25 +67,26 @@ func handleEvents(session *discordgo.Session, message *discordgo.Message, parame
 		var newMsg *string
 		milestone := (*milestones)[key]
 		switch defn.FriendlyName {
+		case "FactionRallyPledge", "FactionRallyWinAnnouncement":
+			// These just specify if the pledge is available and/or if the winner has been announced.
+			fallthrough
 		case "ClanProgress", "ClanObjectives":
 			// We ignore clan progress because it doesn't tell us much.
 			fallthrough
 		case "Raid":
 			// We ignore raid because it doesn't tell us much.
 			fallthrough
-		case "FactionRallyPledge", "FactionRallyWinAnnouncement":
-			// We are ignoring this (for now) because it's the generic faction rally event stuff
-			fallthrough
 		case "CallToArms", "Trials":
 			// We're ignoring these because they are there all the time and provide no info
-			fallthrough
-		case "FactionRally":
+			//			fallthrough
+			//		case "FactionRally":
 			// I can't identify what the current faction rally is yet :/
-			newMsg = nil
 		case "Meditations":
 			newMsg, err = meditationsMessage(milestone, true)
 		case "Nightfall":
 			newMsg, err = nightfallMessage(milestone)
+		case "FactionRally":
+			fallthrough
 		case "Hotspot":
 			newMsg, err = hotspotMessage(milestone, defn)
 		case "":
@@ -276,6 +278,50 @@ func handleMeditations(session *discordgo.Session, message *discordgo.Message, p
 	msg += *eventMsg
 
 	session.ChannelMessageSend(message.ChannelID, msg)
+}
+
+func handleFactionRally(session *discordgo.Session, message *discordgo.Message, parameters string) {
+	channel, err := session.UserChannelCreate(message.Author.ID)
+	if err != nil {
+		discord.LogPMCreateError(message.Author)
+		return
+	}
+
+	discord.LogChatCommand(message.Author, "FactionRally")
+
+	var milestones *map[uint32]goBungieNet.DestinyMilestone
+	var defns *map[uint32]goBungieNet.DestinyMilestoneDefinition
+	milestones, defns, err = fetchEventsAndDefinitions("en")
+	if err != nil {
+		discord.LogPMError(session, message.Author, channel, "Couldn't get milestone data: %s", err.Error())
+		return
+	}
+
+	var dailyMilestone goBungieNet.DestinyMilestone
+	var dailyDefn goBungieNet.DestinyMilestoneDefinition
+	dailyFound := false
+	for key, defn := range *defns {
+		if defn.FriendlyName == "FactionRally" {
+			dailyMilestone = (*milestones)[key]
+			dailyDefn = defn
+			dailyFound = true
+		}
+	}
+
+	if !dailyFound {
+		session.ChannelMessageSend(message.ChannelID, "Faction Rally Events not running")
+		return
+	}
+
+	if dailyFound {
+		dailyMsg, err := hotspotMessage(dailyMilestone, dailyDefn)
+		if err == nil {
+			msg := "Faction rally is currently on, and the daily is: " + *dailyMsg
+			session.ChannelMessageSend(message.ChannelID, msg)
+		} else {
+			discord.LogPMError(session, message.Author, channel, "Couldn't set daily message: %s", err.Error())
+		}
+	}
 }
 
 func nightfallMessage(milestone goBungieNet.DestinyMilestone) (*string, error) {
